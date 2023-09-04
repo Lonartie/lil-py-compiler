@@ -1,0 +1,638 @@
+PARSE =====
+Module(
+  body=[
+    Assign(
+      targets=[
+        Name(id='t1', ctx=Store())],
+      value=Tuple(
+        elts=[
+          Tuple(
+            elts=[
+              Constant(value=7)],
+            ctx=Load()),
+          Constant(value=42)],
+        ctx=Load())),
+    Assign(
+      targets=[
+        Name(id='t2', ctx=Store())],
+      value=Tuple(
+        elts=[
+          Name(id='t1', ctx=Load())],
+        ctx=Load())),
+    Expr(
+      value=Call(
+        func=Name(id='print', ctx=Load()),
+        args=[
+          Subscript(
+            value=Subscript(
+              value=Name(id='t2', ctx=Load()),
+              slice=Constant(value=0),
+              ctx=Load()),
+            slice=Constant(value=1),
+            ctx=Load())],
+        keywords=[]))],
+  type_ignores=[])
+SHRINK =====
+    t1 = ((7,), 42,)
+    t2 = (t1,)
+    print(t2[0][1])
+
+EXPOSE =====
+    t1 = {
+      init_2 = {
+        init_0 = 7
+        if (free_ptr + 16) < fromspace_end:
+          0
+        else:
+          collect(16)
+        tup_1 = allocate(1,tuple[int])
+        tup_1[0] = init_0
+        produce tup_1}
+      init_3 = 42
+      if (free_ptr + 24) < fromspace_end:
+        0
+      else:
+        collect(24)
+      tup_4 = allocate(2,tuple[tuple[int],int])
+      tup_4[0] = init_2
+      tup_4[1] = init_3
+      produce tup_4}
+    t2 = {
+      init_5 = t1
+      if (free_ptr + 16) < fromspace_end:
+        0
+      else:
+        collect(16)
+      tup_6 = allocate(1,tuple[tuple[tuple[int],int]])
+      tup_6[0] = init_5
+      produce tup_6}
+    print(t2[0][1])
+
+RCO =====
+    t1 = {
+      init_2 = {
+        init_0 = 7
+        tmp_7 = (free_ptr + 16)
+        if tmp_7 < fromspace_end:
+          0
+        else:
+          collect(16)
+        tmp_8 = allocate(1,tuple[int])
+        tup_1 = tmp_8
+        tup_1[0] = init_0
+        produce tup_1}
+      init_3 = 42
+      tmp_9 = (free_ptr + 24)
+      if tmp_9 < fromspace_end:
+        0
+      else:
+        collect(24)
+      tmp_10 = allocate(2,tuple[tuple[int],int])
+      tup_4 = tmp_10
+      tup_4[0] = init_2
+      tup_4[1] = init_3
+      produce tup_4}
+    t2 = {
+      init_5 = t1
+      tmp_11 = (free_ptr + 16)
+      if tmp_11 < fromspace_end:
+        0
+      else:
+        collect(16)
+      tmp_12 = allocate(1,tuple[tuple[tuple[int],int]])
+      tup_6 = tmp_12
+      tup_6[0] = init_5
+      produce tup_6}
+    tmp_13 = t2[0]
+    tmp_14 = tmp_13[1]
+    print(tmp_14)
+
+EXPLICATE =====
+block_15:
+    tmp_12 = allocate(1,tuple[tuple[tuple[int],int]])
+    tup_6 = tmp_12
+    tup_6[0] = init_5
+    t2 = tup_6
+    tmp_13 = t2[0]
+    tmp_14 = tmp_13[1]
+    print(tmp_14)
+    return 0
+
+block_16:
+    collect(16)
+    goto block_15
+
+block_17:
+    tmp_10 = allocate(2,tuple[tuple[int],int])
+    tup_4 = tmp_10
+    tup_4[0] = init_2
+    tup_4[1] = init_3
+    t1 = tup_4
+    init_5 = t1
+    tmp_11 = (free_ptr + 16)
+    if tmp_11 < fromspace_end:
+      goto block_15
+    else:
+      goto block_16
+
+block_18:
+    collect(24)
+    goto block_17
+
+block_19:
+    tmp_8 = allocate(1,tuple[int])
+    tup_1 = tmp_8
+    tup_1[0] = init_0
+    init_2 = tup_1
+    init_3 = 42
+    tmp_9 = (free_ptr + 24)
+    if tmp_9 < fromspace_end:
+      goto block_17
+    else:
+      goto block_18
+
+block_20:
+    collect(16)
+    goto block_19
+
+start:
+    init_0 = 7
+    tmp_7 = (free_ptr + 16)
+    if tmp_7 < fromspace_end:
+      goto block_19
+    else:
+      goto block_20
+
+
+SELECT =====
+	.align 16
+block_15:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $130, 0(%r11)
+    movq %r11, tmp_12
+    movq tmp_12, tup_6
+    movq tup_6, %r11
+    movq init_5, 8(%r11)
+    movq tup_6, t2
+    movq t2, %r11
+    movq 8(%r11), tmp_13
+    movq tmp_13, %r11
+    movq 16(%r11), tmp_14
+    movq tmp_14, %rdi
+    callq print_int
+    movq $0, %rax
+    jmp conclusion
+
+	.align 16
+block_16:
+    movq %r15, %rdi
+    movq $16, %rsi
+    callq collect
+    jmp block_15
+
+	.align 16
+block_17:
+    movq free_ptr(%rip), %r11
+    addq $24, free_ptr(%rip)
+    movq $132, 0(%r11)
+    movq %r11, tmp_10
+    movq tmp_10, tup_4
+    movq tup_4, %r11
+    movq init_2, 8(%r11)
+    movq tup_4, %r11
+    movq init_3, 16(%r11)
+    movq tup_4, t1
+    movq t1, init_5
+    movq free_ptr(%rip), tmp_11
+    addq $16, tmp_11
+    cmpq fromspace_end(%rip), tmp_11
+    jl block_15
+    jmp block_16
+
+	.align 16
+block_18:
+    movq %r15, %rdi
+    movq $24, %rsi
+    callq collect
+    jmp block_17
+
+	.align 16
+block_19:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $2, 0(%r11)
+    movq %r11, tmp_8
+    movq tmp_8, tup_1
+    movq tup_1, %r11
+    movq init_0, 8(%r11)
+    movq tup_1, init_2
+    movq $42, init_3
+    movq free_ptr(%rip), tmp_9
+    addq $24, tmp_9
+    cmpq fromspace_end(%rip), tmp_9
+    jl block_17
+    jmp block_18
+
+	.align 16
+block_20:
+    movq %r15, %rdi
+    movq $16, %rsi
+    callq collect
+    jmp block_19
+
+	.align 16
+start:
+    movq $7, init_0
+    movq free_ptr(%rip), tmp_7
+    addq $16, tmp_7
+    cmpq fromspace_end(%rip), tmp_7
+    jl block_19
+    jmp block_20
+
+
+
+HOMES =====
+	.align 16
+block_15:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $130, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %rsi
+    movq %rsi, %r11
+    movq %rdx, 8(%r11)
+    movq %rsi, %rcx
+    movq %rcx, %r11
+    movq 8(%r11), %rcx
+    movq %rcx, %r11
+    movq 16(%r11), %rcx
+    movq %rcx, %rdi
+    callq print_int
+    movq $0, %rax
+    jmp conclusion
+
+	.align 16
+block_16:
+    movq %r15, %rdi
+    movq $16, %rsi
+    callq collect
+    jmp block_15
+
+	.align 16
+block_17:
+    movq free_ptr(%rip), %r11
+    addq $24, free_ptr(%rip)
+    movq $132, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %r8
+    movq %r8, %r11
+    movq %rdx, 8(%r11)
+    movq %r8, %r11
+    movq %rsi, 16(%r11)
+    movq %r8, %rcx
+    movq %rcx, %rdx
+    movq free_ptr(%rip), %rcx
+    addq $16, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_15
+    jmp block_16
+
+	.align 16
+block_18:
+    movq %r15, %rdi
+    movq $24, %rsi
+    callq collect
+    jmp block_17
+
+	.align 16
+block_19:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $2, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %rsi
+    movq %rsi, %r11
+    movq %rdx, 8(%r11)
+    movq %rsi, %rdx
+    movq $42, %rsi
+    movq free_ptr(%rip), %rcx
+    addq $24, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_17
+    jmp block_18
+
+	.align 16
+block_20:
+    movq %r15, %rdi
+    movq $16, %rsi
+    callq collect
+    jmp block_19
+
+	.align 16
+start:
+    movq $7, %rdx
+    movq free_ptr(%rip), %rcx
+    addq $16, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_19
+    jmp block_20
+
+	.align 16
+conclusion:
+
+
+
+PATCH =====
+	.align 16
+block_15:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $130, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %rsi
+    movq %rsi, %r11
+    movq %rdx, 8(%r11)
+    movq %rsi, %rcx
+    movq %rcx, %r11
+    movq 8(%r11), %rcx
+    movq %rcx, %r11
+    movq 16(%r11), %rcx
+    movq %rcx, %rdi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq print_int
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    movq $0, %rax
+    jmp conclusion
+
+	.align 16
+block_16:
+    movq %r15, %rdi
+    movq $16, %rsi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq collect
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    jmp block_15
+
+	.align 16
+block_17:
+    movq free_ptr(%rip), %r11
+    addq $24, free_ptr(%rip)
+    movq $132, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %r8
+    movq %r8, %r11
+    movq %rdx, 8(%r11)
+    movq %r8, %r11
+    movq %rsi, 16(%r11)
+    movq %r8, %rcx
+    movq %rcx, %rdx
+    movq free_ptr(%rip), %rcx
+    addq $16, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_15
+    jmp block_16
+
+	.align 16
+block_18:
+    movq %r15, %rdi
+    movq $24, %rsi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq collect
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    jmp block_17
+
+	.align 16
+block_19:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $2, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %rsi
+    movq %rsi, %r11
+    movq %rdx, 8(%r11)
+    movq %rsi, %rdx
+    movq $42, %rsi
+    movq free_ptr(%rip), %rcx
+    addq $24, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_17
+    jmp block_18
+
+	.align 16
+block_20:
+    movq %r15, %rdi
+    movq $16, %rsi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq collect
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    jmp block_19
+
+	.align 16
+start:
+    movq $7, %rdx
+    movq free_ptr(%rip), %rcx
+    addq $16, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_19
+    jmp block_20
+
+	.align 16
+conclusion:
+
+
+
+PREL CONCL =====
+	.align 16
+block_15:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $130, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %rsi
+    movq %rsi, %r11
+    movq %rdx, 8(%r11)
+    movq %rsi, %rcx
+    movq %rcx, %r11
+    movq 8(%r11), %rcx
+    movq %rcx, %r11
+    movq 16(%r11), %rcx
+    movq %rcx, %rdi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq print_int
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    movq $0, %rax
+    jmp conclusion
+
+	.align 16
+block_16:
+    movq %r15, %rdi
+    movq $16, %rsi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq collect
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    jmp block_15
+
+	.align 16
+block_17:
+    movq free_ptr(%rip), %r11
+    addq $24, free_ptr(%rip)
+    movq $132, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %r8
+    movq %r8, %r11
+    movq %rdx, 8(%r11)
+    movq %r8, %r11
+    movq %rsi, 16(%r11)
+    movq %r8, %rcx
+    movq %rcx, %rdx
+    movq free_ptr(%rip), %rcx
+    addq $16, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_15
+    jmp block_16
+
+	.align 16
+block_18:
+    movq %r15, %rdi
+    movq $24, %rsi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq collect
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    jmp block_17
+
+	.align 16
+block_19:
+    movq free_ptr(%rip), %r11
+    addq $16, free_ptr(%rip)
+    movq $2, 0(%r11)
+    movq %r11, %rcx
+    movq %rcx, %rsi
+    movq %rsi, %r11
+    movq %rdx, 8(%r11)
+    movq %rsi, %rdx
+    movq $42, %rsi
+    movq free_ptr(%rip), %rcx
+    addq $24, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_17
+    jmp block_18
+
+	.align 16
+block_20:
+    movq %r15, %rdi
+    movq $16, %rsi
+    movq %rdx, -8(%rbp)
+    movq %r9, -16(%rbp)
+    movq %r8, -24(%rbp)
+    movq %rsi, -32(%rbp)
+    movq %rcx, -40(%rbp)
+    movq %r10, -48(%rbp)
+    callq collect
+    movq -8(%rbp), %rdx
+    movq -16(%rbp), %r9
+    movq -24(%rbp), %r8
+    movq -32(%rbp), %rsi
+    movq -40(%rbp), %rcx
+    movq -48(%rbp), %r10
+    jmp block_19
+
+	.align 16
+start:
+    movq $7, %rdx
+    movq free_ptr(%rip), %rcx
+    addq $16, %rcx
+    cmpq fromspace_end(%rip), %rcx
+    jl block_19
+    jmp block_20
+
+	.align 16
+conclusion:
+    addq $80, %rsp
+    popq %rbp
+    retq 
+
+	.globl main
+	.align 16
+main:
+    pushq %rbp
+    movq %rsp, %rbp
+    subq $80, %rsp
+    movq $16384, %rdi
+    movq $16384, %rsi
+    callq initialize
+    movq rootstack_begin(%rip), %r15
+    jmp start
+
+
+
